@@ -8,7 +8,6 @@ on:
 
 env:
   DOTNET_VERSION: '8.0.x'
-  DOCKER_REGISTRY: thaihocdocker
 
 jobs:
   build-and-test:
@@ -54,7 +53,7 @@ jobs:
         context: .
         file: ./src/Gateway/src/Gateway/Dockerfile
         push: true
-        tags: digitalcommerce/gateway:latest
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/gateway:latest
 
     # Build và push Identity service
     - name: Build and push Identity
@@ -63,7 +62,7 @@ jobs:
         context: .
         file: ./src/Identity/src/Presentation/Identity.Presentation/Dockerfile
         push: true
-        tags: digitalcommerce/identity:latest
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/identity:latest
 
     # Build và push CRM service
     - name: Build and push CRM
@@ -72,7 +71,7 @@ jobs:
         context: .
         file: ./src/CRM/src/Presentation/CRM.Presentation/Dockerfile
         push: true
-        tags: digitalcommerce/crm:latest
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/crm:latest
 
     # Build và push Game service
     - name: Build and push Game
@@ -81,7 +80,7 @@ jobs:
         context: .
         file: ./src/Game/src/Presentation/Game.Presentation/Dockerfile
         push: true
-        tags: digitalcommerce/game:latest
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/game:latest
 
     # Build và push Loyalty service
     - name: Build and push Loyalty
@@ -90,7 +89,7 @@ jobs:
         context: .
         file: ./src/Loyalty/src/Presentation/Loyalty.Presentation/Dockerfile
         push: true
-        tags: digitalcommerce/loyalty:latest
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/loyalty:latest
 
     # Build và push CDP service
     - name: Build and push CDP
@@ -99,6 +98,4 @@ jobs:
         context: .
         file: ./src/CDP/src/Presentation/CDP.Presentation/Dockerfile
         push: true
-        tags: digitalcommerce/cdp:latest
-        
-    
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/cdp:latest
