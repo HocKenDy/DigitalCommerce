@@ -99,3 +99,149 @@ jobs:
         file: ./src/CDP/src/Presentation/CDP.Presentation/Dockerfile
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/cdp:latest
+  deploy:
+    needs: docker-build-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Create docker network
+      run: docker network create digitalcommerce-network || true
+
+    # Pull và run Gateway service
+    - name: Deploy Gateway
+      run: |
+        docker pull ${{ secrets.DOCKERHUB_USERNAME }}/gateway:latest
+        docker run -d \
+          --name digitalcommerce-gateway \
+          --network digitalcommerce-network \
+          -e ASPNETCORE_ENVIRONMENT=Production \
+          -e ASPNETCORE_HTTP_PORTS=8000 \
+          -p 8000:8000 \
+          ${{ secrets.DOCKERHUB_USERNAME }}/gateway:latest
+
+    # Pull và run Identity service
+    - name: Deploy Identity
+      run: |
+        docker pull ${{ secrets.DOCKERHUB_USERNAME }}/identity:latest
+        docker run -d \
+          --name digitalcommerce-identity \
+          --network digitalcommerce-network \
+          -e ASPNETCORE_ENVIRONMENT=Production \
+          -e ASPNETCORE_HTTP_PORTS=8010 \
+          -p 8010:8010 \
+          ${{ secrets.DOCKERHUB_USERNAME }}/identity:latest
+
+    # Pull và run CRM service
+    - name: Deploy CRM
+      run: |
+        docker pull ${{ secrets.DOCKERHUB_USERNAME }}/crm:latest
+        docker run -d \
+          --name digitalcommerce-crm \
+          --network digitalcommerce-network \
+          -e ASPNETCORE_ENVIRONMENT=Production \
+          -e ASPNETCORE_HTTP_PORTS=8020 \
+          -p 8020:8020 \
+          ${{ secrets.DOCKERHUB_USERNAME }}/crm:latest
+
+    # Pull và run Game service
+    - name: Deploy Game
+      run: |
+        docker pull ${{ secrets.DOCKERHUB_USERNAME }}/game:latest
+        docker run -d \
+          --name digitalcommerce-game \
+          --network digitalcommerce-network \
+          -e ASPNETCORE_ENVIRONMENT=Production \
+          -e ASPNETCORE_HTTP_PORTS=8030 \
+          -p 8030:8030 \
+          ${{ secrets.DOCKERHUB_USERNAME }}/game:latest
+
+    # Pull và run Loyalty service
+    - name: Deploy Loyalty
+      run: |
+        docker pull ${{ secrets.DOCKERHUB_USERNAME }}/loyalty:latest
+        docker run -d \
+          --name digitalcommerce-loyalty \
+          --network digitalcommerce-network \
+          -e ASPNETCORE_ENVIRONMENT=Production \
+          -e ASPNETCORE_HTTP_PORTS=8040 \
+          -p 8040:8040 \
+          ${{ secrets.DOCKERHUB_USERNAME }}/loyalty:latest
+
+    # Pull và run CDP service
+    - name: Deploy CDP
+      run: |
+        docker pull ${{ secrets.DOCKERHUB_USERNAME }}/cdp:latest
+        docker run -d \
+          --name digitalcommerce-cdp \
+          --network digitalcommerce-network \
+          -e ASPNETCORE_ENVIRONMENT=Production \
+          -e ASPNETCORE_HTTP_PORTS=8050 \
+          -p 8050:8050 \
+          ${{ secrets.DOCKERHUB_USERNAME }}/cdp:latest
+
+   # Setup Nginx làm reverse proxy
+    - name: Setup Nginx
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y nginx
+        
+        # Tạo config cho Nginx
+        sudo tee /etc/nginx/sites-available/digitalcommerce <<EOF
+        server {
+            listen 80;
+            server_name digitalcommerce.yourdomain.com;
+
+            location /gateway/ {
+                proxy_pass http://localhost:8000/;
+            }
+
+            location /identity/ {
+                proxy_pass http://localhost:8010/;
+            }
+
+            location /crm/ {
+                proxy_pass http://localhost:8020/;
+            }
+
+            location /game/ {
+                proxy_pass http://localhost:8030/;
+            }
+
+            location /loyalty/ {
+                proxy_pass http://localhost:8040/;
+            }
+
+            location /cdp/ {
+                proxy_pass http://localhost:8050/;
+            }
+        }
+        EOF
+
+        sudo ln -s /etc/nginx/sites-available/digitalcommerce /etc/nginx/sites-enabled/
+        sudo nginx -t
+        sudo systemctl restart nginx
+
+    # Kiểm tra health của các services thông qua Nginx
+    - name: Health Check
+      run: |
+        sleep 30  # Đợi services khởi động
+        for service in gateway identity crm game loyalty cdp; do
+          echo "Checking $service health..."
+          curl -f http://localhost/$service/health || {
+            echo "$service health check failed"
+            exit 1
+          }
+        done
+
+    # Optional: Deploy to cloud service (ví dụ: Azure, AWS, hoặc DigitalOcean)
+    - name: Deploy to Cloud
+      run: |
+        # Thêm các bước deploy lên cloud service ở đây
+        echo "Deploying to cloud..."
