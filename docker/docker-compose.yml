@@ -1,0 +1,165 @@
+version: '3.8'
+
+services:
+  # Gateway Service
+  gateway:
+    image: digitalcommerce/gateway:latest
+    container_name: digitalcommerce-gateway
+    build:
+      context: ..
+      dockerfile: ./src/Gateway/src/Gateway/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8000
+      - ASPNETCORE_HTTPS_PORTS=8001
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+    depends_on:
+      - rabbitmq
+
+  # Identity Service
+  identity:
+    image: digitalcommerce/identity:latest
+    container_name: digitalcommerce-identity
+    build:
+      context: ..
+      dockerfile: ./src/Identity/src/Presentation/Identity.Presentation/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTPS_PORTS=8081
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=Identity;User Id=sa;Password=YourStr0ngP@ssw0rd;TrustServerCertificate=True
+      - RabbitMQ__Host=rabbitmq
+    ports:
+      - "8010:8080"
+      - "8011:8081"
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+    depends_on:
+      - sqlserver
+      - rabbitmq
+
+  # CRM Service
+  crm:
+    image: digitalcommerce/crm:latest
+    container_name: digitalcommerce-crm
+    build:
+      context: ..
+      dockerfile: ./src/CRM/src/Presentation/CRM.Presentation/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTPS_PORTS=8081
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=CRM;User Id=sa;Password=YourStr0ngP@ssw0rd;TrustServerCertificate=True
+      - RabbitMQ__Host=rabbitmq
+    ports:
+      - "8020:8080"
+      - "8021:8081"
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+    depends_on:
+      - sqlserver
+      - rabbitmq
+
+  # Game Service
+  game:
+    image: digitalcommerce/game:latest
+    container_name: digitalcommerce-game
+    build:
+      context: ..
+      dockerfile: ./src/Game/src/Presentation/Game.Presentation/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTPS_PORTS=8081
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=Game;User Id=sa;Password=YourStr0ngP@ssw0rd;TrustServerCertificate=True
+      - RabbitMQ__Host=rabbitmq
+    ports:
+      - "8030:8080"
+      - "8031:8081"
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+    depends_on:
+      - sqlserver
+      - rabbitmq
+
+  # Loyalty Service
+  loyalty:
+    image: digitalcommerce/loyalty:latest
+    container_name: digitalcommerce-loyalty
+    build:
+      context: ..
+      dockerfile: ./src/Loyalty/src/Presentation/Loyalty.Presentation/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTPS_PORTS=8081
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=Loyalty;User Id=sa;Password=YourStr0ngP@ssw0rd;TrustServerCertificate=True
+      - RabbitMQ__Host=rabbitmq
+    ports:
+      - "8040:8080"
+      - "8041:8081"
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+    depends_on:
+      - sqlserver
+      - rabbitmq
+
+  # CDP Service
+  cdp:
+    image: digitalcommerce/cdp:latest
+    container_name: digitalcommerce-cdp
+    build:
+      context: ..
+      dockerfile: ./src/CDP/src/Presentation/CDP.Presentation/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTPS_PORTS=8081
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=CDP;User Id=sa;Password=YourStr0ngP@ssw0rd;TrustServerCertificate=True
+      - RabbitMQ__Host=rabbitmq
+    ports:
+      - "8050:8080"
+      - "8051:8081"
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+    depends_on:
+      - sqlserver
+      - rabbitmq
+
+  # Infrastructure Services
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: digitalcommerce-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStr0ngP@ssw0rd
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: digitalcommerce-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin123
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+volumes:
+  sqlserver_data:
+  rabbitmq_data:
