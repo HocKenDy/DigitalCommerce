@@ -1,0 +1,104 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  DOCKER_REGISTRY: thaihocdocker
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+
+    - name: Test
+      run: dotnet test --no-build --verbosity normal --configuration Release
+
+  docker-build-push:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    # Build và push Gateway service
+    - name: Build and push Gateway
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./src/Gateway/src/Gateway/Dockerfile
+        push: true
+        tags: digitalcommerce/gateway:latest
+
+    # Build và push Identity service
+    - name: Build and push Identity
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./src/Identity/src/Presentation/Identity.Presentation/Dockerfile
+        push: true
+        tags: digitalcommerce/identity:latest
+
+    # Build và push CRM service
+    - name: Build and push CRM
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./src/CRM/src/Presentation/CRM.Presentation/Dockerfile
+        push: true
+        tags: digitalcommerce/crm:latest
+
+    # Build và push Game service
+    - name: Build and push Game
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./src/Game/src/Presentation/Game.Presentation/Dockerfile
+        push: true
+        tags: digitalcommerce/game:latest
+
+    # Build và push Loyalty service
+    - name: Build and push Loyalty
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./src/Loyalty/src/Presentation/Loyalty.Presentation/Dockerfile
+        push: true
+        tags: digitalcommerce/loyalty:latest
+
+    # Build và push CDP service
+    - name: Build and push CDP
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./src/CDP/src/Presentation/CDP.Presentation/Dockerfile
+        push: true
+        tags: digitalcommerce/cdp:latest
+        
+    
